@@ -1,0 +1,276 @@
+IoT Edge Load-Aware Performance Transparency System
+https://img.shields.io/badge/License-MIT-yellow.svg
+
+A simulated distributed IoT edge system that demonstrates load-aware performance transparency using Docker containers as virtual edge nodes (e.g., Raspberry Pi devices).
+
+The system continuously monitors CPU utilisation, task load, memory usage, and response time across distributed nodes. When a node becomes overloaded, tasks are automatically migrated to underutilised nodes to maintain stable performance without modifying application logic.
+
+This project was developed as part of the CS 535 – Distributed Systems assignment at Copperbelt University.
+
+📚 Table of Contents
+Overview
+
+Architecture
+
+Technologies
+
+Prerequisites
+
+Getting Started
+
+Usage
+
+Starting the System
+
+Generating Load
+
+Monitoring
+
+Observing Load Balancing
+
+Experiments and Evaluation
+
+Project Structure
+
+Contributors
+
+License
+
+Overview
+
+In modern IoT edge environments, sensor data must be processed locally to reduce latency, bandwidth usage, and cloud dependency. However, workloads fluctuate unpredictably (e.g., environmental spikes, occupancy changes, or sensor bursts).
+
+When one edge node becomes overloaded while others remain idle, system performance degrades unless adaptive mechanisms are in place.
+
+Performance transparency means that the system automatically adapts to changing workloads without requiring changes to application algorithms or user interaction.
+
+This project simulates a Distributed Edge-Based Smart Campus Environmental Monitoring System where multiple edge devices collaboratively process environmental sensor data and dynamically rebalance workloads when overload occurs.
+
+What This Project Does
+
+This system:
+
+Simulates 5 edge nodes (Docker containers) representing campus buildings.
+
+Each node runs multiple simulated environmental sensor-processing tasks (temperature, humidity, air quality, motion).
+
+Continuously monitors:
+
+CPU utilisation
+
+Memory usage
+
+Active task count
+
+Throughput
+
+Detects overload when CPU usage exceeds a configurable threshold (e.g., 80%).
+
+Automatically migrates active tasks from overloaded nodes to underloaded nodes.
+
+Measures system performance before and after adaptation.
+
+The system evaluates:
+
+Response time per task
+
+Throughput (tasks completed per second)
+
+CPU utilisation across nodes
+
+Adaptation latency (time between overload detection and successful task migration)
+
+The goal is to demonstrate how distributed systems can maintain consistent performance in dynamic IoT edge environments.
+
+Architecture
+Edge Nodes
+
+Each edge node is a Docker container simulating a campus building.
+
+Each node runs:
+
+A Flask API for inter-node communication
+
+A TaskManager for creating and controlling sensor-processing tasks
+
+A metrics module using psutil to collect CPU and memory usage
+
+Nodes expose:
+
+/status – Returns CPU%, memory usage, and active tasks
+
+/offload – Initiates task migration
+
+/receive_task – Receives migrated task state and resumes processing
+
+Central Monitor
+
+A separate container continuously:
+
+Polls all nodes for resource usage
+
+Detects overload conditions
+
+Selects the least loaded target node
+
+Triggers task migration
+
+The monitor logs all decisions for experimental evaluation.
+
+Network
+
+All containers communicate over a Docker bridge network, simulating a distributed campus environment.
+
+Technologies
+
+Python 3.9+ – Core logic
+
+Flask – REST API for inter-node communication
+
+Docker & Docker Compose – Containerisation and orchestration
+
+psutil – CPU and memory monitoring
+
+Requests – HTTP communication between monitor and nodes
+
+Pandas & Matplotlib – Experimental analysis and plotting
+
+Prerequisites
+
+Docker (v20.10+)
+
+Docker Compose
+
+Git
+
+Getting Started
+Clone the repository
+git clone https://github.com/nqabasikeyi/iot-edge-load-balancing.git
+cd iot-edge-load-balancing
+Build and start containers
+docker-compose up --build
+
+This launches:
+
+5 node containers (node1 … node5)
+
+1 monitor container (monitor)
+
+Verify containers are running
+docker ps
+
+You should see six running containers.
+
+Usage
+Generating Load
+
+Use the load generator to simulate increasing sensor workloads:
+
+python experiments/load_generator.py --nodes node1 node2 node3 node4 node5 --max-tasks 20 --step 2
+
+This gradually increases processing tasks per node to simulate environmental spikes.
+
+Monitoring System State
+
+Check a node’s status:
+
+curl http://localhost:5001/status
+
+Monitor logs:
+
+docker logs monitor -f
+
+You will see:
+
+Offloading task <id> from node3 to node2
+Observing Load Balancing
+
+When CPU usage exceeds the threshold:
+
+The monitor detects overload.
+
+The least loaded node is selected.
+
+Task state is transferred.
+
+Target node resumes processing.
+
+You can verify task redistribution using /status endpoints before and after migration.
+
+Experiments and Evaluation
+
+Three experimental scenarios were conducted:
+
+1️⃣ Baseline (No Load Balancing)
+
+Offloading disabled.
+Observe CPU saturation and response time degradation.
+
+2️⃣ Load-Aware Adaptation Enabled
+
+Same workload pattern with automatic migration enabled.
+Observe improved CPU distribution and lower response time.
+
+3️⃣ Scalability Test
+
+Start with 4 nodes, dynamically add additional nodes during execution.
+
+Metrics Collected
+
+Response time per task
+
+Throughput (tasks/sec)
+
+CPU utilisation per node
+
+Adaptation latency
+
+All metrics are stored in:
+
+experiments/results/
+
+Use:
+
+experiments/analysis.ipynb
+
+to generate comparison graphs.
+
+Project Structure
+.
+├── docker-compose.yml
+├── node/
+│   ├── Dockerfile
+│   ├── app.py
+│   ├── task_manager.py
+│   ├── metrics.py
+│   └── requirements.txt
+├── monitor/
+│   ├── Dockerfile
+│   ├── monitor.py
+│   └── requirements.txt
+├── experiments/
+│   ├── load_generator.py
+│   ├── run_tests.py
+│   ├── analysis.ipynb
+│   └── results/
+└── README.md
+
+Contributors
+
+Group Name: IoT Edge Performance Team
+
+Nqaba Jabulani Sikeyi
+
+Vivian Mwale
+
+Jacqueese Ndukumana
+
+Mwiche Silempa
+
+Supervisor: Dr. Derrick Ntalasha
+
+Acknowledgments
+
+Copperbelt University – School of Graduate Studies
+
+Dr. Derrick Ntalasha for guidance on distributed systems principles

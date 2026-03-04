@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  node1:
+    build: ./node
+    container_name: node1
+    environment:
+      - NODE_ID=node1
+      - PORT=5001
+    ports:
+      - "5001:5001"
+
+  node2:
+    build: ./node
+    container_name: node2
+    environment:
+      - NODE_ID=node2
+      - PORT=5002
+    ports:
+      - "5002:5002"
+
+  node3:
+    build: ./node
+    container_name: node3
+    environment:
+      - NODE_ID=node3
+      - PORT=5003
+    ports:
+      - "5003:5003"
+
+  node4:
+    build: ./node
+    container_name: node4
+    environment:
+      - NODE_ID=node4
+      - PORT=5004
+    ports:
+      - "5004:5004"
+
+  monitor:
+    build: ./monitor
+    container_name: monitor
+    ports:
+      - "6000:6000"
+    depends_on:
+      - node1
+      - node2
+      - node3
+      - node4
+      
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "7000:7000"
+    depends_on:
+      - node1
+      - node2
+      - node3
+      - node4

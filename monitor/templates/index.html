@@ -28,6 +28,7 @@
         .normal { background:green; color:white; }
         .offline { background:gray; color:white; }
         .receiving { background:orange; color:black; }
+        .fog { background:#3d7bfd; color:white; }
 
         .mini-badge {
             display:inline-block;
@@ -139,7 +140,9 @@ async function fetchNodes() {
         active_nodes:0,
         overloaded_nodes:0,
         balance_score:0,
-        total_throughput:0
+        total_throughput:0,
+        edge_nodes:0,
+        fog_nodes:0
     };
     const events = result.events || [];
 
@@ -157,6 +160,8 @@ async function fetchNodes() {
             Average CPU: ${fmt(system.average_cpu, 2)}%<br>
             Total Queue: ${system.total_queue}<br>
             Active Nodes: ${system.active_nodes}<br>
+            Edge Nodes: ${system.edge_nodes ?? 0}<br>
+            Fog Nodes: ${system.fog_nodes ?? 0}<br>
             Overloaded Nodes: ${system.overloaded_nodes}<br>
             System Balance Score: ${fmt(system.balance_score, 2)}%<br>
             Total Throughput: ${fmt(totalThroughput, 0)} tasks/s
@@ -178,6 +183,8 @@ async function fetchNodes() {
             badgeClass = "offline";
         } else if (status === "RECEIVING") {
             badgeClass = "receiving";
+        } else if (status === "FOG-RECEIVING") {
+            badgeClass = "fog";
         } else if (String(status).includes("OVERLOAD")) {
             badgeClass = "overload";
         } else {
@@ -186,6 +193,9 @@ async function fetchNodes() {
         }
 
         const isOffline = (status === "OFFLINE");
+        const role = node.role || "edge";
+        const scalingSource = node.scaling_source || (role === "fog" ? "local-fog-server" : "edge-campus-device");
+        const isFog = role === "fog";
         const maxSlider = Math.max(0, (building.capacity || 0) * 2);
 
         const netLatency = node.latency_ms ?? 0;
@@ -227,6 +237,7 @@ async function fetchNodes() {
                 <div><span class="k"><b>Building</b></span><br>${building.name}</div>
                 <div><span class="k"><b>Size</b></span><br>${building.size} m²</div>
                 <div><span class="k"><b>Capacity</b></span><br>${building.capacity}</div>
+                <div><span class="k"><b>Role</b></span><br>${role.toUpperCase()}</div>
                 <div><span class="k"><b>People</b></span><br>
                     <span id="people-val-${node.address}">${people}</span>
                 </div>
@@ -240,6 +251,7 @@ async function fetchNodes() {
                 <div><span class="k">Queue</span><br>${node.queue_length ?? 0}</div>
                 <div><span class="k">Network Latency</span><br>${fmt(netLatency, 2)} ms</div>
                 <div><span class="k">Processing Latency</span><br>${fmt(procLatency, 2)} ms</div>
+                <div><span class="k">Scaling Source</span><br>${scalingSource}</div>
                 <div><span class="k">Offloaded In</span><br>${offIn}</div>
                 <div><span class="k">Throughput</span><br>${node.effective_processing ?? 0} tasks/s</div>
                 <div><span class="k">Local Processed</span><br>${node.local_processed ?? 0}</div>
@@ -279,12 +291,12 @@ async function fetchNodes() {
             <div class="divider"></div>
 
             <input type="range"
-                ${isOffline ? "disabled" : ""}
+                ${(isOffline || isFog) ? "disabled" : ""}
                 min="0"
                 max="${maxSlider}"
                 value="${people}"
                 oninput="handlePeopleChange('${node.address}', this)">
-            <div class="muted">Slide to change occupants. If above capacity, system offloads processing to other nodes.</div>
+            <div class="muted">${isFog ? "Fog node occupancy is fixed. It acts as a local fallback processor for overflow tasks." : "Slide to change occupants. If above capacity, system offloads processing to other nodes first, then to the local fog node."}</div>
 
             <div class="divider"></div>
 

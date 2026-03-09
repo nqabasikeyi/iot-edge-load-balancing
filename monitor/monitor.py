@@ -5,8 +5,11 @@ import time
 
 app = Flask(__name__, template_folder="templates")
 
-# ✅ INSIDE DOCKER: always talk to container port 5000
-NODES = ["node1:5000", "node2:5000", "node3:5000", "node4:5000"]
+# Edge nodes are the primary processing layer.
+EDGE_NODES = ["node1:5000", "node2:5000", "node3:5000", "node4:5000"]
+# Local fog node acts as nearby campus fallback capacity.
+FOG_NODES = ["fog1:5000"]
+NODES = EDGE_NODES + FOG_NODES
 
 REDISTRIBUTION_DELAY = 2  # seconds
 MAX_EVENTS = 12
@@ -41,6 +44,7 @@ def fetch_health(node_addr):
     latency = int((time.time() - start) * 1000)
 
     if not r:
+        role = "fog" if node_addr in FOG_NODES else "edge"
         return {
             "node": node_addr.split(":")[0],
             "address": node_addr,
@@ -49,6 +53,8 @@ def fetch_health(node_addr):
             "memory_percent": 0,
             "queue_length": 0,
             "latency_ms": 0,
+            "role": role,
+            "scaling_source": "local-fog-server" if role == "fog" else "edge-campus-device",
             "building": {"capacity": 0, "name": node_addr.split(":")[0], "size": 0},
             "sensor_values": {
                 "people": 0,
@@ -91,6 +97,8 @@ def fetch_health(node_addr):
     data.setdefault("secondary_overload", False)
     data.setdefault("secondary_reasons", [])
     data.setdefault("overload_reasons", [])
+    data.setdefault("role", "fog" if node_addr in FOG_NODES else "edge")
+    data.setdefault("scaling_source", "local-fog-server" if node_addr in FOG_NODES else "edge-campus-device")
 
     # Normalize for dashboard
     data["status"] = "OFFLINE" if data.get("status") == "offline" else "NORMAL"
@@ -118,12 +126,13 @@ def add_event(frm, to, amount, reasons=None):
     ts = time.strftime("%H:%M:%S")
     sender = frm.split(":")[0]
     receiver = to.split(":")[0]
+    receiver_role = "FOG" if to in FOG_NODES else "EDGE"
 
     if reasons:
         reason_text = ", ".join(reasons)
-        events.append(f"[{ts}] {sender} OVERLOAD ({reason_text}) → offloading {amount} to {receiver}")
+        events.append(f"[{ts}] {sender} OVERLOAD ({reason_text}) → offloading {amount} to {receiver} [{receiver_role}]")
     else:
-        events.append(f"[{ts}] {sender} OVERLOAD → offloading {amount} to {receiver}")
+        events.append(f"[{ts}] {sender} OVERLOAD → offloading {amount} to {receiver} [{receiver_role}]")
 
     if len(events) > MAX_EVENTS:
         del events[0:len(events) - MAX_EVENTS]
@@ -176,17 +185,17 @@ def classify_overload(nd):
 
 def redistribute_processing_load(nodes):
     """
-    ✅ DO NOT change physical people (slider stays).
-    ✅ Only add processing load to receivers via /add_offloaded.
-    ✅ Capacity-based overload remains the main trigger.
-    ✅ Secondary triggers: CPU, queue, and memory+CPU support overload.
+    - Does not change physical people counts.
+    - Uses edge-to-edge redistribution first.
+    - Uses local fog fallback only when edge nodes cannot absorb more load.
     """
     by_addr = {n["address"]: n for n in nodes}
 
-    def get_targets(exclude_addr):
+    def get_targets(exclude_addr, target_pool):
         targets = []
-        for a, nd in by_addr.items():
-            if a == exclude_addr:
+        for a in target_pool:
+            nd = by_addr.get(a)
+            if not nd or a == exclude_addr:
                 continue
 
             if nd["status"] == "OFFLINE":
@@ -217,9 +226,10 @@ def redistribute_processing_load(nodes):
             nd["status"] = "NORMAL"
             nd["overload_reasons"] = []
 
-    # redistribute for each overloaded room
-    for addr, nd in by_addr.items():
-        if nd["status"] == "OFFLINE":
+    # redistribute for each overloaded edge room
+    for addr in EDGE_NODES:
+        nd = by_addr.get(addr)
+        if not nd or nd["status"] == "OFFLINE":
             continue
 
         overloaded, reasons, capacity_overload = classify_overload(nd)
@@ -233,20 +243,19 @@ def redistribute_processing_load(nodes):
             cpu = float(nd.get("cpu_percent", 0))
             queue = int(nd.get("queue_length", 0))
 
-            # Main trigger remains capacity-based for determining excess load
             if capacity_overload:
                 excess = max(0, ppl - cap)
             else:
-                # Proactive redistribution for secondary overload
                 cpu_factor = max(0, int((cpu - 70) / 5))
                 queue_factor = max(0, queue // 5)
                 excess = max(5, min(15, cpu_factor + queue_factor))
 
             time.sleep(REDISTRIBUTION_DELAY)
-            targets = get_targets(addr)
 
-            while excess > 0 and targets:
-                taddr = targets.pop()
+            # 1) Prefer peer edge nodes first.
+            edge_targets = get_targets(addr, EDGE_NODES)
+            while excess > 0 and edge_targets:
+                taddr = edge_targets.pop()
                 tnd = by_addr[taddr]
 
                 tcap = int(tnd["building"].get("capacity", 0))
@@ -264,17 +273,33 @@ def redistribute_processing_load(nodes):
                     continue
 
                 add_event(addr, taddr, transfer, reasons)
-
-                # receiver badge for this cycle
-                if "OVERLOAD" in str(tnd["status"]):
-                    tnd["status"] = "REC:OVERLOAD"
-                else:
-                    tnd["status"] = "RECEIVING"
-
+                tnd["status"] = "REC:OVERLOAD" if "OVERLOAD" in str(tnd["status"]) else "RECEIVING"
                 excess -= transfer
 
-            # Sender remains overload if it was capacity-based,
-            # otherwise still keep as overload for this cycle
+            # 2) If edge layer is saturated, use local fog node fallback.
+            if excess > 0:
+                fog_targets = get_targets(addr, FOG_NODES)
+                while excess > 0 and fog_targets:
+                    taddr = fog_targets.pop()
+                    tnd = by_addr[taddr]
+
+                    tcap = int(tnd["building"].get("capacity", 0))
+                    tppl = int(tnd["sensor_values"].get("people", 0))
+                    free = tcap - tppl
+
+                    if free <= 0:
+                        continue
+
+                    transfer = min(excess, free)
+                    ok = add_offloaded(taddr, transfer)
+                    if not ok:
+                        tnd["status"] = "OFFLINE"
+                        continue
+
+                    add_event(addr, taddr, transfer, reasons)
+                    tnd["status"] = "FOG-RECEIVING"
+                    excess -= transfer
+
             nd["status"] = "OVERLOAD"
 
     return list(by_addr.values())
@@ -289,7 +314,9 @@ def compute_summary(nodes):
             "active_nodes": 0,
             "overloaded_nodes": 0,
             "balance_score": 100,
-            "total_throughput": 0
+            "total_throughput": 0,
+            "edge_nodes": 0,
+            "fog_nodes": 0,
         }
 
     cpu_values = [float(n.get("cpu_percent", 0)) for n in active]
@@ -307,7 +334,9 @@ def compute_summary(nodes):
         "active_nodes": len(active),
         "overloaded_nodes": overloaded,
         "balance_score": round(balance_score, 2),
-        "total_throughput": total_throughput
+        "total_throughput": total_throughput,
+        "edge_nodes": sum(1 for n in active if n.get("role") == "edge"),
+        "fog_nodes": sum(1 for n in active if n.get("role") == "fog"),
     }
 
 
@@ -320,18 +349,18 @@ def index():
 def nodes():
     snapshot = [fetch_health(n) for n in NODES]
 
-    # recompute fresh each cycle
     reset_all_offloaded()
-
     updated = redistribute_processing_load(snapshot)
 
     refreshed = [fetch_health(n) for n in NODES]
-    status_map = {n["address"]: n["status"] for n in updated}
-    reasons_map = {n["address"]: n.get("overload_reasons", []) for n in updated}
+    updated_map = {n["address"]: n for n in updated}
 
     for n in refreshed:
-        n["status"] = status_map.get(n["address"], n["status"])
-        n["overload_reasons"] = reasons_map.get(n["address"], [])
+        upd = updated_map.get(n["address"], {})
+        n["status"] = upd.get("status", n["status"])
+        n["overload_reasons"] = upd.get("overload_reasons", [])
+        n["role"] = upd.get("role", n.get("role"))
+        n["scaling_source"] = upd.get("scaling_source", n.get("scaling_source"))
 
     summary = compute_summary(refreshed)
     return jsonify({"nodes": refreshed, "system": summary, "events": events[-MAX_EVENTS:]})

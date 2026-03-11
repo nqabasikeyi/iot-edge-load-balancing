@@ -1,5 +1,5 @@
-Smart Campus Distributed Load Balancing System
-Overview
+#Smart Campus Distributed Load Balancing System
+##Overview
 
 This project implements a distributed edge–fog computing simulation designed to demonstrate how smart buildings can dynamically manage computational workloads using environmental sensor data.
 
@@ -23,7 +23,7 @@ Occupancy (People)
 
 Instead of waiting for overload, the system redistributes processing tasks when nodes begin to experience higher demand.
 
-System Architecture
+##System Architecture
 
 The system consists of five distributed nodes, each running inside Docker containers.
 
@@ -38,12 +38,12 @@ Edge Nodes
 Edge nodes represent smart campus buildings.
 Each node simulates environmental sensors and generates processing workloads based on sensor readings.
 
-Fog Node
+##Fog Node
 
 The fog node acts as a central processing fallback server.
 If edge nodes cannot absorb additional workload, tasks are redirected to the fog node.
 
-System Behaviour
+##System Behaviour
 
 The system continuously monitors the state of all nodes.
 
@@ -51,7 +51,7 @@ When a node begins to experience high demand, the monitoring service redistribut
 
 This allows the distributed system to maintain balanced performance and avoid bottlenecks.
 
-Sensor Model
+##Sensor Model
 
 Each building node simulates the following sensors:
 
@@ -134,19 +134,27 @@ Docker Compose
 HTML / JavaScript Dashboard
 
 Running the System
-1. Clone the repository
-git clone https://github.com/yourusername/smart-campus-distributed-system.git
-cd smart-campus-distributed-system
-2. Start the containers
-docker-compose up --build
+##1. Clone the repository
 
+```bash
+git clone https://github.com/nqabasikeyi/iot-edge-load-balancing.git
+cd smart-campus-distributed-system
+```
+
+##2. Start the containers
+
+```bash
+docker-compose up --build
+```
 This will start all distributed nodes and the monitoring service.
 
-3. Open the dashboard
+##3. Open the dashboard
 
 Open a browser and go to:
 
+```bash
 http://localhost:5001
+```
 
 The dashboard allows you to:
 
@@ -208,6 +216,7 @@ Kubernetes orchestration
 
 Real-time distributed analytics
 
-License
+##License
 
 This project is intended for educational and research purposes.
+

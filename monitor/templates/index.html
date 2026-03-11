@@ -3,89 +3,36 @@
 <head>
     <title>Smart Campus Edge Dashboard</title>
     <style>
-        body { background:#111; color:#eee; font-family:Arial; margin: 20px; }
-
-        .nodes-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .node-card {
-            background:#1e1e1e;
-            padding:15px;
-            border-radius:10px;
-        }
-
-        .badge {
-            padding:5px 10px;
-            border-radius:5px;
-            font-weight:bold;
-            display:inline-block;
-            margin: 6px 0;
-        }
-        .overload { background:red; color:white; }
+        body { background:#111; color:#eee; font-family:Arial; margin:20px; }
+        .nodes-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+        .node-card { background:#1e1e1e; padding:15px; border-radius:10px; }
+        .badge { padding:5px 10px; border-radius:5px; font-weight:bold; display:inline-block; margin:6px 0; }
+        .max-reached { background:#8b0000; color:#fff; }
+        .balancing { background:#7a4b00; color:#fff; }
         .normal { background:green; color:white; }
         .offline { background:gray; color:white; }
         .receiving { background:orange; color:black; }
         .fog { background:#3d7bfd; color:white; }
-
-        .mini-badge {
-            display:inline-block;
-            padding:4px 8px;
-            border-radius:999px;
-            font-size:12px;
-            margin: 4px 6px 0 0;
-            background:#2b2b2b;
-            color:#ddd;
-            border:1px solid #3a3a3a;
-        }
-
-        .mini-badge.alert {
-            background:#4a1f1f;
-            color:#ffb3b3;
-            border:1px solid #7a2f2f;
-        }
-
-        .mini-badge.warn {
-            background:#4a3b12;
-            color:#ffd98a;
-            border:1px solid #7a6320;
-        }
-
+        .mini-badge { display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; margin:4px 6px 0 0; background:#2b2b2b; color:#ddd; border:1px solid #3a3a3a; }
+        .mini-badge.alert { background:#4a1f1f; color:#ffb3b3; border:1px solid #7a2f2f; }
+        .mini-badge.warn { background:#4a3b12; color:#ffd98a; border:1px solid #7a6320; }
         button { margin:3px; padding:5px 10px; cursor:pointer; }
-        input[type="range"] { width: 260px; }
-
-        .summary {
-            background:#222;
-            padding:15px;
-            border-radius:10px;
-            margin-bottom:20px;
-        }
-
-        .log-line {
-            font-size:13px;
-            color:#ccc;
-            margin:3px 0;
-        }
-
-        .muted { color:#aaa; font-size: 13px; }
-        .divider { margin: 10px 0; border-top: 1px solid #333; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px; }
+        input[type="range"] { width:100%; }
+        .summary { background:#222; padding:15px; border-radius:10px; margin-bottom:20px; }
+        .log-line { font-size:13px; color:#ccc; margin:3px 0; }
+        .muted { color:#aaa; font-size:13px; }
+        .divider { margin:10px 0; border-top:1px solid #333; }
+        .grid { display:grid; grid-template-columns:1fr 1fr; gap:6px 20px; }
         .k { color:#bbb; }
-        .reason-wrap { margin-top: 6px; }
+        .reason-wrap { margin-top:6px; }
         .section-title { color:#bbb; font-size:13px; margin-bottom:6px; }
-
-        @media (max-width: 900px) {
-            .nodes-grid { grid-template-columns: 1fr; }
-            input[type="range"] { width: 100%; }
-        }
+        .slider-wrap { margin:10px 0; }
+        .sensor-label { font-size:13px; color:#bbb; margin-bottom:2px; }
+        @media (max-width: 900px) { .nodes-grid { grid-template-columns:1fr; } }
     </style>
 </head>
 <body>
-
 <h1>Smart Campus Distributed Monitoring System</h1>
-
 <div id="system-summary"></div>
 <div id="event-log" class="summary"></div>
 <div id="nodes" class="nodes-grid"></div>
@@ -103,56 +50,41 @@ function fmt(n, d=0){
 function renderEventLog(){
     document.getElementById("event-log").innerHTML =
         "<h3>System Events</h3>" +
-        (systemLogs.length
-            ? systemLogs.map(l => `<div class="log-line">${l}</div>`).join("")
-            : `<div class="muted">No recent redistribution events.</div>`);
+        (systemLogs.length ? systemLogs.map(l => `<div class="log-line">${l}</div>`).join("") : `<div class="muted">No recent balancing events.</div>`);
 }
 
 function setEventsFromMonitor(events){
     const normalized = (events || []).map(e => String(e));
     const signature = normalized.join("||");
-
     if (signature === lastEventsSignature) return;
     lastEventsSignature = signature;
-
-    systemLogs = normalized.slice().reverse();
-    if(systemLogs.length > 12) systemLogs = systemLogs.slice(0, 12);
+    systemLogs = normalized.slice().reverse().slice(0, 14);
     renderEventLog();
 }
 
 function reasonBadge(reason){
     const r = String(reason || "").toLowerCase();
-    const cls = (
-        r.includes("capacity") || r.includes("cpu") || r.includes("queue") || r.includes("memory")
-    ) ? "mini-badge alert" : "mini-badge warn";
-
+    const cls = (r.includes("max") || r.includes("cpu") || r.includes("queue")) ? "mini-badge alert" : "mini-badge warn";
     return `<span class="${cls}">${reason}</span>`;
+}
+
+function statusClass(status){
+    const s = String(status || "NORMAL");
+    if (s === "OFFLINE") return "offline";
+    if (s === "RECEIVING") return "receiving";
+    if (s === "FOG-RECEIVING") return "fog";
+    if (s === "BALANCING-SEND") return "balancing";
+    if (s === "MAX-REACHED") return "max-reached";
+    return "normal";
 }
 
 async function fetchNodes() {
     const res = await fetch("/nodes");
     const result = await res.json();
-
     const data = result.nodes || [];
-    const system = result.system || {
-        average_cpu:0,
-        total_queue:0,
-        active_nodes:0,
-        overloaded_nodes:0,
-        balance_score:0,
-        total_throughput:0,
-        edge_nodes:0,
-        fog_nodes:0
-    };
+    const system = result.system || {average_cpu:0,total_queue:0,active_nodes:0,overloaded_nodes:0,balance_score:0,total_throughput:0,edge_nodes:0,fog_nodes:0};
     const events = result.events || [];
-
     setEventsFromMonitor(events);
-
-    const computedThroughput = data.reduce((sum, node) => {
-        return sum + Number(node.effective_processing ?? 0);
-    }, 0);
-
-    const totalThroughput = system.total_throughput ?? computedThroughput;
 
     document.getElementById("system-summary").innerHTML = `
         <div class="summary">
@@ -162,190 +94,164 @@ async function fetchNodes() {
             Active Nodes: ${system.active_nodes}<br>
             Edge Nodes: ${system.edge_nodes ?? 0}<br>
             Fog Nodes: ${system.fog_nodes ?? 0}<br>
-            Overloaded Nodes: ${system.overloaded_nodes}<br>
+            Max-Reached Nodes: ${system.overloaded_nodes}<br>
             System Balance Score: ${fmt(system.balance_score, 2)}%<br>
-            Total Throughput: ${fmt(totalThroughput, 0)} tasks/s
-        </div>
-    `;
+            Total Throughput: ${fmt(system.total_throughput, 0)} tasks/s
+        </div>`;
 
     let html = "";
-
     data.forEach(node => {
         const building = node.building || {name:"Unknown", size:0, capacity:0};
         const sensors = node.sensor_values || {};
-        const people = sensors.people ?? 0;
-
-        let status = node.status || "NORMAL";
-        let badgeClass = "normal";
-
-        if (status === "OFFLINE" || status === "offline") {
-            status = "OFFLINE";
-            badgeClass = "offline";
-        } else if (status === "RECEIVING") {
-            badgeClass = "receiving";
-        } else if (status === "FOG-RECEIVING") {
-            badgeClass = "fog";
-        } else if (String(status).includes("OVERLOAD")) {
-            badgeClass = "overload";
-        } else {
-            status = "NORMAL";
-            badgeClass = "normal";
-        }
-
-        const isOffline = (status === "OFFLINE");
+        const limits = node.sensor_limits || {};
         const role = node.role || "edge";
-        const scalingSource = node.scaling_source || (role === "fog" ? "local-fog-server" : "edge-campus-device");
+        const status = node.status || "NORMAL";
+        const isOffline = status === "OFFLINE";
         const isFog = role === "fog";
-        const maxSlider = Math.max(0, (building.capacity || 0) * 2);
-
-        const netLatency = node.latency_ms ?? 0;
-        const procLatency = node.processing_latency_ms ?? 0;
-        const offIn = node.offloaded_in ?? 0;
-
         const overloadReasons = Array.isArray(node.overload_reasons) ? node.overload_reasons : [];
         const secondaryReasons = Array.isArray(node.secondary_reasons) ? node.secondary_reasons : [];
+        const sensorMaxReasons = Array.isArray(node.sensor_max_reasons) ? node.sensor_max_reasons : [];
+        const receivedFrom = Array.isArray(node.received_from) ? node.received_from : [];
+        const sentTo = Array.isArray(node.sent_to) ? node.sent_to : [];
 
-        const anomalyMultiplier = node.anomaly_multiplier ?? 1.0;
-        const co2Anomaly = !!node.co2_anomaly;
-        const tempSpikeAnomaly = !!node.temp_spike_anomaly;
-        const tempChange30s = node.temp_change_30s ?? 0;
-
-        const reasonsHtml = overloadReasons.length
-            ? overloadReasons.map(reasonBadge).join("")
-            : `<span class="muted">None</span>`;
-
-        const secondaryHtml = secondaryReasons.length
-            ? secondaryReasons.map(reasonBadge).join("")
-            : `<span class="muted">None</span>`;
-
-        const anomalyHtml = `
-            ${co2Anomaly ? `<span class="mini-badge warn">CO₂ anomaly</span>` : ``}
-            ${tempSpikeAnomaly ? `<span class="mini-badge warn">Temp spike</span>` : ``}
-            ${(!co2Anomaly && !tempSpikeAnomaly) ? `<span class="muted">None</span>` : ``}
-        `;
+        const reasonsHtml = overloadReasons.length ? overloadReasons.map(reasonBadge).join("") : `<span class="muted">None</span>`;
+        const secondaryHtml = secondaryReasons.length ? secondaryReasons.map(reasonBadge).join("") : `<span class="muted">None</span>`;
+        const sensorMaxHtml = sensorMaxReasons.length ? sensorMaxReasons.map(reasonBadge).join("") : `<span class="muted">None</span>`;
+        const receivingHtml = receivedFrom.length ? receivedFrom.map(x => `<span class="mini-badge warn">from ${x.source}: +${x.amount}</span>`).join("") : `<span class="muted">None</span>`;
+        const sendingHtml = sentTo.length ? sentTo.map(x => `<span class="mini-badge warn">to ${x.target}: -${x.amount}</span>`).join("") : `<span class="muted">None</span>`;
 
         html += `
         <div class="node-card">
             <h2>${node.node || node.address}</h2>
             <div class="muted">Address: ${node.address || "unknown"}</div>
-
-            <span class="badge ${badgeClass}">${status}</span>
+            <span class="badge ${statusClass(status)}">${status}</span>
 
             <div class="divider"></div>
-
             <div class="grid">
                 <div><span class="k"><b>Building</b></span><br>${building.name}</div>
                 <div><span class="k"><b>Size</b></span><br>${building.size} m²</div>
                 <div><span class="k"><b>Capacity</b></span><br>${building.capacity}</div>
                 <div><span class="k"><b>Role</b></span><br>${role.toUpperCase()}</div>
-                <div><span class="k"><b>People</b></span><br>
-                    <span id="people-val-${node.address}">${people}</span>
-                </div>
+                <div><span class="k"><b>People</b></span><br>${sensors.people ?? 0}</div>
+                <div><span class="k"><b>Load Score</b></span><br>${fmt(node.load_score, 2)}</div>
             </div>
 
             <div class="divider"></div>
-
             <div class="grid">
                 <div><span class="k">CPU</span><br>${fmt(node.cpu_percent, 2)}%</div>
                 <div><span class="k">Memory</span><br>${fmt(node.memory_percent, 2)}%</div>
                 <div><span class="k">Queue</span><br>${node.queue_length ?? 0}</div>
-                <div><span class="k">Network Latency</span><br>${fmt(netLatency, 2)} ms</div>
-                <div><span class="k">Processing Latency</span><br>${fmt(procLatency, 2)} ms</div>
-                <div><span class="k">Scaling Source</span><br>${scalingSource}</div>
-                <div><span class="k">Offloaded In</span><br>${offIn}</div>
+                <div><span class="k">Network Latency</span><br>${fmt(node.latency_ms, 2)} ms</div>
+                <div><span class="k">Processing Latency</span><br>${fmt(node.processing_latency_ms, 2)} ms</div>
                 <div><span class="k">Throughput</span><br>${node.effective_processing ?? 0} tasks/s</div>
+                <div><span class="k">Offloaded In</span><br>${node.offloaded_in ?? 0}</div>
                 <div><span class="k">Local Processed</span><br>${node.local_processed ?? 0}</div>
             </div>
 
             <div class="divider"></div>
-
             <div class="grid">
-                <div><span class="k">Temperature</span><br>${fmt(sensors.temperature, 2)} °C</div>
-                <div><span class="k">Humidity</span><br>${fmt(sensors.humidity, 2)}%</div>
-                <div><span class="k">Motion</span><br>${fmt(sensors.motion, 2)}</div>
+                <div><span class="k">Temperature</span><br>${fmt(sensors.temperature, 1)} °C</div>
+                <div><span class="k">Humidity</span><br>${fmt(sensors.humidity, 1)}%</div>
+                <div><span class="k">Motion</span><br>${fmt(sensors.motion, 1)}</div>
                 <div><span class="k">CO₂</span><br>${sensors.air_quality ?? 0} ppm</div>
-            </div>
-
-            <div class="divider"></div>
-
-            <div class="grid">
-                <div><span class="k">Anomaly Multiplier</span><br>${fmt(anomalyMultiplier, 2)}x</div>
-                <div><span class="k">Temp Change (30s)</span><br>${fmt(tempChange30s, 2)} °C</div>
+                <div><span class="k">Power</span><br>${fmt(sensors.power, 1)}</div>
+                <div><span class="k">Anomaly Multiplier</span><br>${fmt(node.anomaly_multiplier, 2)}x</div>
             </div>
 
             <div class="reason-wrap">
-                <div class="section-title">Overload Reasons</div>
-                ${reasonsHtml}
+                <div class="section-title">Balance / Max Reasons</div>${reasonsHtml}
             </div>
-
             <div class="reason-wrap">
-                <div class="section-title">Secondary Trigger Flags</div>
-                ${secondaryHtml}
+                <div class="section-title">Sensor Max Flags</div>${sensorMaxHtml}
             </div>
-
             <div class="reason-wrap">
-                <div class="section-title">Anomaly Flags</div>
-                ${anomalyHtml}
+                <div class="section-title">Secondary Trigger Flags</div>${secondaryHtml}
+            </div>
+            <div class="reason-wrap">
+                <div class="section-title">Sending</div>${sendingHtml}
+            </div>
+            <div class="reason-wrap">
+                <div class="section-title">Receiving</div>${receivingHtml}
             </div>
 
             <div class="divider"></div>
-
-            <input type="range"
-                ${(isOffline || isFog) ? "disabled" : ""}
-                min="0"
-                max="${maxSlider}"
-                value="${people}"
-                oninput="handlePeopleChange('${node.address}', this)">
-            <div class="muted">${isFog ? "Fog node occupancy is fixed. It acts as a local fallback processor for overflow tasks." : "Slide to change occupants. If above capacity, system offloads processing to other nodes first, then to the local fog node."}</div>
+            ${isFog ? `<div class="muted">Fog node acts as nearby fallback processing capacity. Environmental sliders are disabled for it.</div>` : `
+            <div class="slider-wrap">
+                <div class="sensor-label">People: <span id="people-val-${node.address}">${sensors.people ?? 0}</span> / ${(limits.people && limits.people.max) || building.capacity || 0}</div>
+                <input type="range" ${isOffline ? "disabled" : ""} min="0" max="${(limits.people && limits.people.max) || building.capacity || 0}" value="${sensors.people ?? 0}" oninput="handlePeopleChange('${node.address}', this)">
+            </div>
+            <div class="slider-wrap">
+                <div class="sensor-label">Temperature: <span id="temperature-val-${node.address}">${fmt(sensors.temperature, 1)}</span> / ${(limits.temperature && limits.temperature.max) || 40}</div>
+                <input type="range" ${isOffline ? "disabled" : ""} min="18" max="${(limits.temperature && limits.temperature.max) || 40}" step="0.5" value="${sensors.temperature ?? 22}" oninput="handleSensorChange('${node.address}', 'temperature', this)">
+            </div>
+            <div class="slider-wrap">
+                <div class="sensor-label">Humidity: <span id="humidity-val-${node.address}">${fmt(sensors.humidity, 1)}</span> / ${(limits.humidity && limits.humidity.max) || 90}</div>
+                <input type="range" ${isOffline ? "disabled" : ""} min="25" max="${(limits.humidity && limits.humidity.max) || 90}" step="1" value="${sensors.humidity ?? 45}" oninput="handleSensorChange('${node.address}', 'humidity', this)">
+            </div>
+            <div class="slider-wrap">
+                <div class="sensor-label">Motion: <span id="motion-val-${node.address}">${fmt(sensors.motion, 1)}</span> / ${(limits.motion && limits.motion.max) || 100}</div>
+                <input type="range" ${isOffline ? "disabled" : ""} min="0" max="${(limits.motion && limits.motion.max) || 100}" step="1" value="${sensors.motion ?? 0}" oninput="handleSensorChange('${node.address}', 'motion', this)">
+            </div>
+            <div class="slider-wrap">
+                <div class="sensor-label">CO₂: <span id="air_quality-val-${node.address}">${sensors.air_quality ?? 400}</span> / ${(limits.air_quality && limits.air_quality.max) || 2000}</div>
+                <input type="range" ${isOffline ? "disabled" : ""} min="350" max="${(limits.air_quality && limits.air_quality.max) || 2000}" step="10" value="${sensors.air_quality ?? 400}" oninput="handleSensorChange('${node.address}', 'air_quality', this)">
+            </div>
+            <div class="slider-wrap">
+                <div class="sensor-label">Power: <span id="power-val-${node.address}">${fmt(sensors.power, 1)}</span> / ${(limits.power && limits.power.max) || 15}</div>
+                <input type="range" ${isOffline ? "disabled" : ""} min="0.5" max="${(limits.power && limits.power.max) || 15}" step="0.1" value="${sensors.power ?? 1.5}" oninput="handleSensorChange('${node.address}', 'power', this)">
+            </div>`}
 
             <div class="divider"></div>
-
             <button ${isOffline ? "disabled" : ""} onclick="shutdownNode('${node.address}')">Shutdown</button>
             <button onclick="activateNode('${node.address}')">Activate</button>
-        </div>
-        `;
+        </div>`;
     });
 
     document.getElementById("nodes").innerHTML = html;
 }
 
+function postDebounced(key, fn){
+    if (updateTimeouts[key]) clearTimeout(updateTimeouts[key]);
+    updateTimeouts[key] = setTimeout(fn, 220);
+}
+
 function handlePeopleChange(address, slider) {
     const value = slider.value;
-
     const label = document.getElementById("people-val-" + address);
     if (label) label.innerText = value;
-
-    if (updateTimeouts[address]) clearTimeout(updateTimeouts[address]);
-
-    updateTimeouts[address] = setTimeout(async () => {
+    postDebounced(address + "-people", async () => {
         await fetch("/control_people", {
-            method: "POST",
-            headers: {"Content-Type":"application/json"},
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
             body: JSON.stringify({node: address, people: value})
         });
-    }, 250);
+    });
+}
+
+function handleSensorChange(address, sensor, slider) {
+    const value = slider.value;
+    const label = document.getElementById(sensor + "-val-" + address);
+    if (label) label.innerText = value;
+    postDebounced(address + "-" + sensor, async () => {
+        await fetch("/control_sensor", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body: JSON.stringify({node: address, sensor: sensor, value: value})
+        });
+    });
 }
 
 async function shutdownNode(address){
-    await fetch("/control_node", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({node: address, action:"shutdown"})
-    });
+    await fetch("/control_node", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({node: address, action:"shutdown"})});
 }
 
 async function activateNode(address){
-    await fetch("/control_node", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({node: address, action:"activate"})
-    });
+    await fetch("/control_node", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({node: address, action:"activate"})});
 }
 
 renderEventLog();
 fetchNodes();
 setInterval(fetchNodes, 2000);
 </script>
-
 </body>
 </html>

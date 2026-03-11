@@ -1,276 +1,213 @@
-IoT Edge Load-Aware Performance Transparency System
-https://img.shields.io/badge/License-MIT-yellow.svg
-
-A simulated distributed IoT edge system that demonstrates load-aware performance transparency using Docker containers as virtual edge nodes (e.g., Raspberry Pi devices).
-
-The system continuously monitors CPU utilisation, task load, memory usage, and response time across distributed nodes. When a node becomes overloaded, tasks are automatically migrated to underutilised nodes to maintain stable performance without modifying application logic.
-
-This project was developed as part of the CS 535 – Distributed Systems assignment at Copperbelt University.
-
-📚 Table of Contents
+Smart Campus Distributed Load Balancing System
 Overview
 
-Architecture
+This project implements a distributed edge–fog computing simulation designed to demonstrate how smart buildings can dynamically manage computational workloads using environmental sensor data.
 
-Technologies
+The system models a smart campus environment where multiple buildings act as edge computing nodes, while a centralized fog node provides additional processing capacity when needed.
 
-Prerequisites
+The objective of the system is to maintain balanced workloads across nodes while preventing overload conditions.
 
-Getting Started
+The system reacts dynamically to environmental and activity-based sensor inputs such as:
 
-Usage
+Temperature
 
-Starting the System
+Humidity
 
-Generating Load
+CO₂ (Air Quality)
 
-Monitoring
+Motion
 
-Observing Load Balancing
+Power Consumption
 
-Experiments and Evaluation
+Occupancy (People)
 
-Project Structure
+Instead of waiting for overload, the system redistributes processing tasks when nodes begin to experience higher demand.
 
-Contributors
+System Architecture
 
-License
+The system consists of five distributed nodes, each running inside Docker containers.
 
-Overview
+Node	Role	Location
+node1	Edge Node	Library
+node2	Edge Node	Lecturer Office
+node3	Edge Node	Laboratory
+node4	Edge Node	Classroom
+fog1	Fog Node	Campus Fog Server
+Edge Nodes
 
-In modern IoT edge environments, sensor data must be processed locally to reduce latency, bandwidth usage, and cloud dependency. However, workloads fluctuate unpredictably (e.g., environmental spikes, occupancy changes, or sensor bursts).
+Edge nodes represent smart campus buildings.
+Each node simulates environmental sensors and generates processing workloads based on sensor readings.
 
-When one edge node becomes overloaded while others remain idle, system performance degrades unless adaptive mechanisms are in place.
+Fog Node
 
-Performance transparency means that the system automatically adapts to changing workloads without requiring changes to application algorithms or user interaction.
+The fog node acts as a central processing fallback server.
+If edge nodes cannot absorb additional workload, tasks are redirected to the fog node.
 
-This project simulates a Distributed Edge-Based Smart Campus Environmental Monitoring System where multiple edge devices collaboratively process environmental sensor data and dynamically rebalance workloads when overload occurs.
+System Behaviour
 
-What This Project Does
+The system continuously monitors the state of all nodes.
 
-This system:
+When a node begins to experience high demand, the monitoring service redistributes workload to other nodes with lower load.
 
-Simulates 5 edge nodes (Docker containers) representing campus buildings.
+This allows the distributed system to maintain balanced performance and avoid bottlenecks.
 
-Each node runs multiple simulated environmental sensor-processing tasks (temperature, humidity, air quality, motion).
+Sensor Model
 
-Continuously monitors:
+Each building node simulates the following sensors:
 
-CPU utilisation
+Sensor	Description
+People	Number of occupants in the building
+Temperature	Indoor temperature conditions
+Humidity	Air moisture level
+CO₂	Air quality level
+Motion	Activity detection level
+Power	Energy consumption of devices
+
+The sensors are dynamically related.
+
+For example:
+
+Increasing people raises temperature, humidity, and CO₂ levels
+
+Higher motion increases power usage
+
+Increased power usage may increase temperature
+
+These relationships create a realistic simulation of building activity.
+
+Maximum Threshold Detection
+
+Each sensor has a defined maximum value.
+
+If any sensor reaches its maximum threshold, the node status becomes:
+
+MAX-REACHED
+
+This indicates that the node has reached a critical operating condition.
+
+The system then redistributes workload to other nodes to maintain stability.
+
+Node Status Types
+
+Nodes may display several operational states:
+
+Status	Meaning
+ACTIVE	Normal operation
+MAX-REACHED	A sensor has reached its maximum threshold
+BALANCING-SEND	Node transferring workload to another node
+RECEIVING	Node receiving workload from another node
+FOG-RECEIVING	Fog server receiving excess workload
+Load Balancing Strategy
+
+The monitoring service continuously checks node metrics such as:
+
+CPU usage
 
 Memory usage
 
-Active task count
+Processing queue
 
-Throughput
+Sensor-driven workload
 
-Detects overload when CPU usage exceeds a configurable threshold (e.g., 80%).
+When imbalance is detected:
 
-Automatically migrates active tasks from overloaded nodes to underloaded nodes.
+The node with the highest processing demand becomes the sender.
 
-Measures system performance before and after adaptation.
+Nodes with lower demand become receivers.
 
-The system evaluates:
+Excess processing tasks are transferred to receiver nodes.
 
-Response time per task
+If all edge nodes are heavily loaded, the fog node receives the excess workload.
 
-Throughput (tasks completed per second)
+Technologies Used
 
-CPU utilisation across nodes
+The system was implemented using the following technologies:
 
-Adaptation latency (time between overload detection and successful task migration)
+Python
 
-The goal is to demonstrate how distributed systems can maintain consistent performance in dynamic IoT edge environments.
+Flask
 
-Architecture
-Edge Nodes
-
-Each edge node is a Docker container simulating a campus building.
-
-Each node runs:
-
-A Flask API for inter-node communication
-
-A TaskManager for creating and controlling sensor-processing tasks
-
-A metrics module using psutil to collect CPU and memory usage
-
-Nodes expose:
-
-/status – Returns CPU%, memory usage, and active tasks
-
-/offload – Initiates task migration
-
-/receive_task – Receives migrated task state and resumes processing
-
-Central Monitor
-
-A separate container continuously:
-
-Polls all nodes for resource usage
-
-Detects overload conditions
-
-Selects the least loaded target node
-
-Triggers task migration
-
-The monitor logs all decisions for experimental evaluation.
-
-Network
-
-All containers communicate over a Docker bridge network, simulating a distributed campus environment.
-
-Technologies
-
-Python 3.9+ – Core logic
-
-Flask – REST API for inter-node communication
-
-Docker & Docker Compose – Containerisation and orchestration
-
-psutil – CPU and memory monitoring
-
-Requests – HTTP communication between monitor and nodes
-
-Pandas & Matplotlib – Experimental analysis and plotting
-
-Prerequisites
-
-Docker (v20.10+)
+Docker
 
 Docker Compose
 
-Git
+HTML / JavaScript Dashboard
 
-Getting Started
-Clone the repository
-git clone https://github.com/nqabasikeyi/iot-edge-load-balancing.git
-cd iot-edge-load-balancing
-Build and start containers
+Running the System
+1. Clone the repository
+git clone https://github.com/yourusername/smart-campus-distributed-system.git
+cd smart-campus-distributed-system
+2. Start the containers
 docker-compose up --build
 
-This launches:
+This will start all distributed nodes and the monitoring service.
 
-5 node containers (node1 … node5)
+3. Open the dashboard
 
-1 monitor container (monitor)
+Open a browser and go to:
 
-Verify containers are running
-docker ps
+http://localhost:5001
 
-You should see six running containers.
+The dashboard allows you to:
 
-Usage
-Generating Load
+Adjust sensor sliders
 
-Use the load generator to simulate increasing sensor workloads:
+Simulate building activity
 
-python experiments/load_generator.py --nodes node1 node2 node3 node4 node5 --max-tasks 20 --step 2
+Monitor node metrics
 
-This gradually increases processing tasks per node to simulate environmental spikes.
+Observe load balancing events
 
-Monitoring System State
+Example Demonstration Scenario
 
-Check a node’s status:
+Increase CO₂ or temperature in the Library node.
 
-curl http://localhost:5001/status
+The node reaches its maximum sensor threshold.
 
-Monitor logs:
+The node status becomes MAX-REACHED.
 
-docker logs monitor -f
+The monitoring service redistributes workload to another node.
 
-You will see:
+The receiving node shows RECEIVING status.
 
-Offloading task <id> from node3 to node2
-Observing Load Balancing
+The system load becomes balanced again.
 
-When CPU usage exceeds the threshold:
+Educational Purpose
 
-The monitor detects overload.
+This project demonstrates several important distributed systems concepts, including:
 
-The least loaded node is selected.
+Edge Computing
 
-Task state is transferred.
+Fog Computing
 
-Target node resumes processing.
+Distributed Monitoring
 
-You can verify task redistribution using /status endpoints before and after migration.
+Dynamic Load Balancing
 
-Experiments and Evaluation
+Sensor-Driven Processing
 
-Three experimental scenarios were conducted:
+Performance Transparency
 
-1️⃣ Baseline (No Load Balancing)
+Fault-Tolerant Architecture
 
-Offloading disabled.
-Observe CPU saturation and response time degradation.
+The system provides a simulation environment for studying distributed resource management and adaptive workload distribution.
 
-2️⃣ Load-Aware Adaptation Enabled
+Future Improvements
 
-Same workload pattern with automatic migration enabled.
-Observe improved CPU distribution and lower response time.
+Possible future extensions of the system include:
 
-3️⃣ Scalability Test
+Machine learning based workload prediction
 
-Start with 4 nodes, dynamically add additional nodes during execution.
+Advanced anomaly detection
 
-Metrics Collected
+Real IoT device integration
 
-Response time per task
+Decentralized monitoring architecture
 
-Throughput (tasks/sec)
+Kubernetes orchestration
 
-CPU utilisation per node
+Real-time distributed analytics
 
-Adaptation latency
+License
 
-All metrics are stored in:
-
-experiments/results/
-
-Use:
-
-experiments/analysis.ipynb
-
-to generate comparison graphs.
-
-Project Structure
-.
-├── docker-compose.yml
-├── node/
-│   ├── Dockerfile
-│   ├── app.py
-│   ├── task_manager.py
-│   ├── metrics.py
-│   └── requirements.txt
-├── monitor/
-│   ├── Dockerfile
-│   ├── monitor.py
-│   └── requirements.txt
-├── experiments/
-│   ├── load_generator.py
-│   ├── run_tests.py
-│   ├── analysis.ipynb
-│   └── results/
-└── README.md
-
-Contributors
-
-Group Name: IoT Edge Performance Team
-
-Nqaba Jabulani Sikeyi
-
-Vivian Mwale
-
-Jacqueese Ndukumana
-
-Mwiche Silempa
-
-Supervisor: Dr. Derrick Ntalasha
-
-Acknowledgments
-
-Copperbelt University – School of Graduate Studies
-
-Dr. Derrick Ntalasha for guidance on distributed systems principles
+This project is intended for educational and research purposes.

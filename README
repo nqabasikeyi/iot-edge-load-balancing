@@ -1,5 +1,5 @@
-#Smart Campus Distributed Load Balancing System
-##Overview
+# Smart Campus Distributed Load Balancing System
+## Overview
 
 This project implements a distributed edge–fog computing simulation designed to demonstrate how smart buildings can dynamically manage computational workloads using environmental sensor data.
 
@@ -219,4 +219,5 @@ Real-time distributed analytics
 ##License
 
 This project is intended for educational and research purposes.
+
 

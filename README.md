@@ -11,7 +11,7 @@ The system demonstrates how multiple nodes collaborate to **balance workloads be
 
 Add screenshots of your dashboard here.
 
-![Dashboard](./screenshots/dashboard.png)
+![Dashboard](./dashboard/dashboard.png)
 
 ---
 
@@ -203,3 +203,4 @@ Possible future improvements include:
 - Real IoT device integration
 - Decentralized monitoring architecture
 - Kubernetes deployment
+

@@ -1,223 +1,110 @@
-# Smart Campus Distributed Load Balancing System
-## Overview
+# 🧠 Smart Campus Distributed Load Balancing System
 
-This project implements a distributed edge–fog computing simulation designed to demonstrate how smart buildings can dynamically manage computational workloads using environmental sensor data.
+Welcome to the **Smart Campus Distributed System** project!  
+This project simulates a **distributed edge–fog computing environment** where smart campus buildings dynamically manage computational workloads using environmental sensor data.
 
-The system models a smart campus environment where multiple buildings act as edge computing nodes, while a centralized fog node provides additional processing capacity when needed.
+The system demonstrates how multiple nodes collaborate to **balance workloads before overload occurs**, ensuring stability and performance transparency in a distributed environment.
 
-The objective of the system is to maintain balanced workloads across nodes while preventing overload conditions.
+---
 
-The system reacts dynamically to environmental and activity-based sensor inputs such as:
+# 📸 Screenshots
 
-Temperature
+Add screenshots of your dashboard here.
 
-Humidity
+![Dashboard](./screenshots/dashboard.png)
 
-CO₂ (Air Quality)
+---
 
-Motion
+# 🏗 System Architecture
 
-Power Consumption
+The system simulates a **smart campus distributed computing environment** composed of several nodes.
 
-Occupancy (People)
+| Node | Role | Location |
+|-----|------|------|
+| node1 | Edge Node | Library |
+| node2 | Edge Node | Lecturer Office |
+| node3 | Edge Node | Laboratory |
+| node4 | Edge Node | Classroom |
+| fog1 | Fog Node | Campus Fog Server |
 
-Instead of waiting for overload, the system redistributes processing tasks when nodes begin to experience higher demand.
+## Edge Nodes
 
-##System Architecture
+Edge nodes represent **smart buildings equipped with sensors**.  
+Each node processes environmental data locally and generates workloads based on sensor readings.
 
-The system consists of five distributed nodes, each running inside Docker containers.
+## Fog Node
 
-Node	Role	Location
-node1	Edge Node	Library
-node2	Edge Node	Lecturer Office
-node3	Edge Node	Laboratory
-node4	Edge Node	Classroom
-fog1	Fog Node	Campus Fog Server
-Edge Nodes
+The fog node acts as a **central processing fallback server**.  
+If edge nodes cannot handle additional workload, tasks are redirected to the fog node.
 
-Edge nodes represent smart campus buildings.
-Each node simulates environmental sensors and generates processing workloads based on sensor readings.
+---
 
-##Fog Node
+# 🌡 Sensor Simulation
 
-The fog node acts as a central processing fallback server.
-If edge nodes cannot absorb additional workload, tasks are redirected to the fog node.
+Each building node simulates several environmental and activity sensors.
 
-##System Behaviour
+| Sensor | Description |
+|------|------|
+| People | Number of occupants in the building |
+| Temperature | Indoor temperature level |
+| Humidity | Air moisture level |
+| CO₂ | Air quality level |
+| Motion | Activity detection level |
+| Power | Device energy consumption |
 
-The system continuously monitors the state of all nodes.
+## Sensor Relationships
 
-When a node begins to experience high demand, the monitoring service redistributes workload to other nodes with lower load.
+The sensors dynamically influence one another.
 
-This allows the distributed system to maintain balanced performance and avoid bottlenecks.
+Examples:
 
-##Sensor Model
+- Increasing **people** increases **temperature, humidity, and CO₂**
+- Higher **motion** increases **power consumption**
+- Increased **power consumption** raises **temperature**
 
-Each building node simulates the following sensors:
+These interactions simulate **real smart building behaviour**.
 
-Sensor	Description
-People	Number of occupants in the building
-Temperature	Indoor temperature conditions
-Humidity	Air moisture level
-CO₂	Air quality level
-Motion	Activity detection level
-Power	Energy consumption of devices
+---
 
-The sensors are dynamically related.
+# ⚠️ Node Status Types
 
-For example:
+Nodes can operate in several states.
 
-Increasing people raises temperature, humidity, and CO₂ levels
+| Status | Meaning |
+|------|------|
+| ACTIVE | Normal operation |
+| MAX-REACHED | A sensor has reached its maximum threshold |
+| BALANCING-SEND | Node sending workload to another node |
+| RECEIVING | Node receiving workload from another node |
+| FOG-RECEIVING | Fog server receiving excess workload |
 
-Higher motion increases power usage
+---
 
-Increased power usage may increase temperature
+# ⚖️ Load Balancing Strategy
 
-These relationships create a realistic simulation of building activity.
+The monitoring service continuously evaluates node performance using metrics such as:
 
-Maximum Threshold Detection
+- CPU usage
+- Memory usage
+- Queue length
+- Sensor activity
 
-Each sensor has a defined maximum value.
+When imbalance occurs:
 
-If any sensor reaches its maximum threshold, the node status becomes:
+1. The **node with highest load becomes the sender**
+2. Nodes with lower load become **receivers**
+3. Processing tasks are redistributed
 
-MAX-REACHED
+If all edge nodes are heavily loaded, the **fog node receives the excess workload**.
 
-This indicates that the node has reached a critical operating condition.
+---
 
-The system then redistributes workload to other nodes to maintain stability.
+# 🚀 Installation
 
-Node Status Types
+Follow these steps to run the system locally.
 
-Nodes may display several operational states:
-
-Status	Meaning
-ACTIVE	Normal operation
-MAX-REACHED	A sensor has reached its maximum threshold
-BALANCING-SEND	Node transferring workload to another node
-RECEIVING	Node receiving workload from another node
-FOG-RECEIVING	Fog server receiving excess workload
-Load Balancing Strategy
-
-The monitoring service continuously checks node metrics such as:
-
-CPU usage
-
-Memory usage
-
-Processing queue
-
-Sensor-driven workload
-
-When imbalance is detected:
-
-The node with the highest processing demand becomes the sender.
-
-Nodes with lower demand become receivers.
-
-Excess processing tasks are transferred to receiver nodes.
-
-If all edge nodes are heavily loaded, the fog node receives the excess workload.
-
-Technologies Used
-
-The system was implemented using the following technologies:
-
-Python
-
-Flask
-
-Docker
-
-Docker Compose
-
-HTML / JavaScript Dashboard
-
-Running the System
-##1. Clone the repository
+## 1️⃣ Clone the Repository
 
 ```bash
-git clone https://github.com/nqabasikeyi/iot-edge-load-balancing.git
-cd smart-campus-distributed-system
-```
-
-##2. Start the containers
-
-```bash
-docker-compose up --build
-```
-This will start all distributed nodes and the monitoring service.
-
-##3. Open the dashboard
-
-Open a browser and go to:
-
-```bash
-http://localhost:5001
-```
-
-The dashboard allows you to:
-
-Adjust sensor sliders
-
-Simulate building activity
-
-Monitor node metrics
-
-Observe load balancing events
-
-Example Demonstration Scenario
-
-Increase CO₂ or temperature in the Library node.
-
-The node reaches its maximum sensor threshold.
-
-The node status becomes MAX-REACHED.
-
-The monitoring service redistributes workload to another node.
-
-The receiving node shows RECEIVING status.
-
-The system load becomes balanced again.
-
-Educational Purpose
-
-This project demonstrates several important distributed systems concepts, including:
-
-Edge Computing
-
-Fog Computing
-
-Distributed Monitoring
-
-Dynamic Load Balancing
-
-Sensor-Driven Processing
-
-Performance Transparency
-
-Fault-Tolerant Architecture
-
-The system provides a simulation environment for studying distributed resource management and adaptive workload distribution.
-
-Future Improvements
-
-Possible future extensions of the system include:
-
-Machine learning based workload prediction
-
-Advanced anomaly detection
-
-Real IoT device integration
-
-Decentralized monitoring architecture
-
-Kubernetes orchestration
-
-Real-time distributed analytics
-
-##License
-
-This project is intended for educational and research purposes.
-
-
+git clone https://github.com/ynqabasikeyi/iot-edge-load-balancing.git
+cd iot-edge-load-balancing

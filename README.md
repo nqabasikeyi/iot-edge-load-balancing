@@ -9,8 +9,9 @@ The system demonstrates how multiple nodes collaborate to **balance workloads be
 
 # 📸 Screenshots
 
+Add screenshots of your dashboard here.
 
-![Dashboard](./dashboard/dashboard.png)
+![Dashboard](./screenshots/dashboard.png)
 
 ---
 
@@ -108,4 +109,97 @@ Follow these steps to run the system locally.
 git clone https://github.com/ynqabasikeyi/iot-edge-load-balancing.git
 cd iot-edge-load-balancing
 
+## 2️⃣ Install Docker
 
+Ensure **Docker** and **Docker Compose** are installed.
+
+Download Docker here:
+
+https://www.docker.com/products/docker-desktop/
+
+---
+
+## 3️⃣ Start the Distributed System
+
+Run the following command:
+
+```bash
+docker-compose up --build
+
+This will start:
+
+- Edge nodes
+- Fog node
+- Monitoring service
+- Dashboard
+
+---
+
+## 🌐 Open the Dashboard
+
+Open your browser and go to:
+
+```bash
+http://localhost:7000
+```
+
+The dashboard allows you to:
+
+- Adjust sensor sliders
+- Simulate building activity
+- Monitor node metrics
+- Observe load balancing events
+
+---
+
+## 📦 Usage
+
+Using the dashboard, you can simulate various distributed system scenarios.
+
+### Example Scenario
+
+1. Increase **CO₂** or **temperature** in the **Library node**.
+2. The node reaches its sensor threshold.
+3. The node status becomes **MAX-REACHED**.
+4. The monitoring service redistributes workload to another node.
+5. The receiving node displays **RECEIVING** status.
+
+This demonstrates **dynamic distributed load balancing**.
+
+---
+
+## 🛠 Technologies Used
+
+- Python
+- Flask
+- Docker
+- Docker Compose
+- HTML / JavaScript Dashboard
+
+---
+
+## 🎓 Educational Purpose
+
+This system demonstrates important **Distributed Systems concepts**, including:
+
+- Edge Computing
+- Fog Computing
+- Distributed Monitoring
+- Load Balancing
+- Sensor-Driven Processing
+- Performance Transparency
+- Fault-Tolerant Architecture
+
+The project acts as a **simulation platform for studying distributed resource management and adaptive workload balancing**.
+
+---
+
+## 🔮 Future Improvements
+
+Possible future improvements include:
+
+- Machine learning based workload prediction
+- Advanced anomaly detection
+- Real IoT device integration
+- Decentralized monitoring architecture
+- Kubernetes deployment

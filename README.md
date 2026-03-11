@@ -108,6 +108,7 @@ Follow these steps to run the system locally.
 ```bash
 git clone https://github.com/ynqabasikeyi/iot-edge-load-balancing.git
 cd iot-edge-load-balancing
+```
 
 ## 2️⃣ Install Docker
 
@@ -125,7 +126,7 @@ Run the following command:
 
 ```bash
 docker-compose up --build
-
+```
 This will start:
 
 - Edge nodes
@@ -203,4 +204,5 @@ Possible future improvements include:
 - Real IoT device integration
 - Decentralized monitoring architecture
 - Kubernetes deployment
+
 

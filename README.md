@@ -9,7 +9,7 @@ The system demonstrates how multiple nodes collaborate to **balance workloads be
 
 # 📸 Screenshots
 
-(./dashboard/dashboard.png)
+![Dashboard](./dashboard/dashboard.png)
 
 ---
 

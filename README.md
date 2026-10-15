@@ -9,9 +9,7 @@ The system demonstrates how multiple nodes collaborate to **balance workloads be
 
 # 📸 Screenshots
 
-Add screenshots of your dashboard here.
-
-![Dashboard](./dashboard/dashboard.png)
+(./dashboard/dashboard.png)
 
 ---
 
@@ -106,7 +104,7 @@ Follow these steps to run the system locally.
 ## 1️⃣ Clone the Repository
 
 ```bash
-git clone https://github.com/ynqabasikeyi/iot-edge-load-balancing.git
+git clone https://github.com/nqabasikeyi/iot-edge-load-balancing.git
 cd iot-edge-load-balancing
 ```
 
